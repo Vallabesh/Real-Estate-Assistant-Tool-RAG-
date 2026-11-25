@@ -12,6 +12,11 @@ from langchain_groq import ChatGroq
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from prompt import PROMPT, EXAMPLE_PROMPT
 
+import os
+import streamlit as st
+from dotenv import load_dotenv
+
+
 load_dotenv()
 
 # Constants
@@ -24,11 +29,31 @@ llm = None
 vector_store = None
 
 
+def get_config(key, default=None):
+    # First, check environment variables / local .env
+    value = os.getenv(key)
+
+    if value:
+        return value
+
+    # If not found, check Streamlit secrets
+    try:
+        value = st.secrets.get(key, default)
+    except Exception:
+        value = default
+
+    return value
+
 def initialize_components():
     global llm, vector_store
 
     if llm is None:
-        llm = ChatGroq(model="openai/gpt-oss-120b", temperature=0.9, max_tokens=500)
+        llm = ChatGroq(
+            model=get_config("GROQ_MODEL", "openai/gpt-oss-120b"),
+            api_key=get_config("GROQ_API_KEY"),
+            temperature=0.9,
+            max_tokens=500
+        )
 
     if vector_store is None:
         ef = HuggingFaceEmbeddings(
